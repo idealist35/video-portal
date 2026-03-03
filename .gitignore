@@ -1,3 +1,5 @@
 /vendor/
 /data/portal.db
 composer.phar
+.env
+.idea/
