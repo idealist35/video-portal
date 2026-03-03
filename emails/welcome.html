@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0; padding:0; background:#1a1030; font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#241845; border-radius:12px; overflow:hidden; margin-top:40px;">
+  <tr>
+    <td style="padding:40px 30px; text-align:center; background:linear-gradient(135deg,#6c2bd9,#e040a0);">
+      <h1 style="color:#fff; margin:0; font-size:28px;">{{SITE_TITLE}}</h1>
+      <p style="color:rgba(255,255,255,0.8); margin:10px 0 0; font-size:14px;">Welcome aboard!</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:30px;">
+      <p style="color:#d4c5f0; font-size:16px; line-height:1.6;">
+        Hello! Your account <strong style="color:#e040a0;">{{EMAIL}}</strong> has been created.
+      </p>
+      <p style="color:#d4c5f0; font-size:16px; line-height:1.6;">
+        Please verify your email to access all content:
+      </p>
+      <div style="text-align:center; margin:30px 0;">
+        <a href="{{VERIFY_URL}}" style="display:inline-block; padding:14px 40px; background:linear-gradient(135deg,#6c2bd9,#e040a0); color:#fff; text-decoration:none; border-radius:8px; font-weight:bold; font-size:16px;">
+          Verify Email
+        </a>
+      </div>
+      <p style="color:#8a7aaa; font-size:13px;">
+        If the button doesn't work, copy this link:<br>
+        <a href="{{VERIFY_URL}}" style="color:#a78bfa; word-break:break-all;">{{VERIFY_URL}}</a>
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:20px 30px; border-top:1px solid #3a2a5c; text-align:center;">
+      <p style="color:#6a5a8a; font-size:12px; margin:0;">{{SITE_TITLE}}</p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

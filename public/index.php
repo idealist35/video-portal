@@ -1,0 +1,277 @@
+<?php
+/**
+ * Single Entry Point / Router
+ * 
+ * All requests are routed through this file via nginx rewrite.
+ * Handles both frontend pages and API endpoints.
+ */
+
+// PHP built-in server: serve static files directly
+if (php_sapi_name() === 'cli-server') {
+    $file = __DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (is_file($file)) {
+        return false;
+    }
+}
+
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/r2.php';
+require_once __DIR__ . '/../includes/mailer.php';
+
+// Parse request path
+$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = rtrim($requestUri, '/') ?: '/';
+$method = $_SERVER['REQUEST_METHOD'];
+
+// ── API Routes ───────────────────────────────────────────────
+if (str_starts_with($path, '/api/')) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    // API auth check (Bearer token)
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $token = str_replace('Bearer ', '', $authHeader);
+    if ($token !== API_ADMIN_TOKEN) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
+
+    $apiPath = substr($path, 4); // strip /api prefix
+    switch (true) {
+        case str_starts_with($apiPath, '/videos'):
+            require __DIR__ . '/../api/videos.php';
+            break;
+        case str_starts_with($apiPath, '/users'):
+            require __DIR__ . '/../api/users.php';
+            break;
+        case str_starts_with($apiPath, '/stats'):
+            require __DIR__ . '/../api/stats.php';
+            break;
+        default:
+            http_response_code(404);
+            echo json_encode(['error' => 'Not found']);
+    }
+    exit;
+}
+
+// ── Frontend Routes ──────────────────────────────────────────
+
+// Helper: render template with layout
+function render(string $template, array $data = []): void
+{
+    $data['user'] = getCurrentUser();
+    $data['csrf'] = csrfField();
+    $data['siteTitle'] = SITE_TITLE;
+    $data['hasSubscription'] = hasActiveSubscription($data['user']);
+    extract($data);
+    $contentTemplate = TEMPLATES_PATH . '/' . $template . '.php';
+    require TEMPLATES_PATH . '/layout.php';
+}
+
+// Helper: flash messages
+function setFlash(string $type, string $message): void
+{
+    ensureSession();
+    $_SESSION['flash'] = ['type' => $type, 'message' => $message];
+}
+
+function getFlash(): ?array
+{
+    ensureSession();
+    $flash = $_SESSION['flash'] ?? null;
+    unset($_SESSION['flash']);
+    return $flash;
+}
+
+switch ($path) {
+
+    // ── Home / Catalog ───────────────────────────────────────
+    case '/':
+        $db = getDB();
+        $videos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
+        render('catalog', ['videos' => $videos, 'pageTitle' => 'Catalog']);
+        break;
+
+    // ── Login ────────────────────────────────────────────────
+    case '/login':
+        if (getCurrentUser()) {
+            header('Location: /');
+            exit;
+        }
+        if ($method === 'POST') {
+            if (!validateCsrf()) {
+                setFlash('error', 'Invalid form submission');
+                header('Location: /login');
+                exit;
+            }
+            $user = loginUser($_POST['email'] ?? '', $_POST['password'] ?? '', !empty($_POST['remember']));
+            if ($user) {
+                header('Location: /');
+                exit;
+            }
+            setFlash('error', 'Invalid email or password');
+            header('Location: /login');
+            exit;
+        }
+        render('login', ['pageTitle' => 'Login']);
+        break;
+
+    // ── Register ─────────────────────────────────────────────
+    case '/register':
+        if (getCurrentUser()) {
+            header('Location: /');
+            exit;
+        }
+        if ($method === 'POST') {
+            if (!validateCsrf()) {
+                setFlash('error', 'Invalid form submission');
+                header('Location: /register');
+                exit;
+            }
+            $email = $_POST['email'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $passwordConfirm = $_POST['password_confirm'] ?? '';
+
+            if (strlen($password) < 6) {
+                setFlash('error', 'Password must be at least 6 characters');
+                header('Location: /register');
+                exit;
+            }
+            if ($password !== $passwordConfirm) {
+                setFlash('error', 'Passwords do not match');
+                header('Location: /register');
+                exit;
+            }
+            try {
+                $userId = registerUser($email, $password);
+                // Get verify token for welcome email
+                $db = getDB();
+                $stmt = $db->prepare("SELECT verify_token FROM users WHERE id = :id");
+                $stmt->execute([':id' => $userId]);
+                $row = $stmt->fetch();
+                if ($row) {
+                    sendWelcomeEmail($email, $row['verify_token']);
+                }
+                setFlash('success', 'Registration successful! Check your email to verify.');
+                header('Location: /login');
+                exit;
+            } catch (\PDOException $e) {
+                if (str_contains($e->getMessage(), 'UNIQUE')) {
+                    setFlash('error', 'This email is already registered');
+                } else {
+                    setFlash('error', 'Registration failed');
+                }
+                header('Location: /register');
+                exit;
+            }
+        }
+        render('register', ['pageTitle' => 'Register']);
+        break;
+
+    // ── Email Verification ───────────────────────────────────
+    case '/verify':
+        $token = $_GET['token'] ?? '';
+        if ($token && verifyEmail($token)) {
+            setFlash('success', 'Email verified! You can now log in.');
+        } else {
+            setFlash('error', 'Invalid or expired verification link');
+        }
+        header('Location: /login');
+        exit;
+
+    // ── Forgot Password ─────────────────────────────────────
+    case '/forgot-password':
+        if ($method === 'POST') {
+            if (!validateCsrf()) {
+                setFlash('error', 'Invalid form submission');
+                header('Location: /forgot-password');
+                exit;
+            }
+            $email = $_POST['email'] ?? '';
+            $token = createResetToken($email);
+            if ($token) {
+                sendResetEmail($email, $token);
+            }
+            // Always show success to prevent email enumeration
+            setFlash('success', 'If the email exists, a reset link has been sent.');
+            header('Location: /login');
+            exit;
+        }
+        render('forgot-password', ['pageTitle' => 'Forgot Password']);
+        break;
+
+    // ── Reset Password ──────────────────────────────────────
+    case '/reset-password':
+        $token = $_GET['token'] ?? $_POST['token'] ?? '';
+        if ($method === 'POST') {
+            if (!validateCsrf()) {
+                setFlash('error', 'Invalid form submission');
+                header('Location: /reset-password?token=' . urlencode($token));
+                exit;
+            }
+            $password = $_POST['password'] ?? '';
+            if (strlen($password) < 6) {
+                setFlash('error', 'Password must be at least 6 characters');
+                header('Location: /reset-password?token=' . urlencode($token));
+                exit;
+            }
+            if (resetPassword($token, $password)) {
+                setFlash('success', 'Password updated! You can now log in.');
+                header('Location: /login');
+            } else {
+                setFlash('error', 'Invalid or expired reset link');
+                header('Location: /forgot-password');
+            }
+            exit;
+        }
+        render('reset-password', ['pageTitle' => 'Reset Password', 'token' => $token]);
+        break;
+
+    // ── Watch Video ──────────────────────────────────────────
+    case (preg_match('#^/watch/(\d+)$#', $path, $m) ? $path : null):
+        $user = requireAuth();
+        $videoId = (int) $m[1];
+        $db = getDB();
+        $stmt = $db->prepare("SELECT * FROM videos WHERE id = :id");
+        $stmt->execute([':id' => $videoId]);
+        $video = $stmt->fetch();
+
+        if (!$video) {
+            http_response_code(404);
+            render('catalog', ['videos' => [], 'pageTitle' => 'Not Found', 'error' => 'Video not found']);
+            break;
+        }
+
+        // Free videos are accessible to all authenticated users
+        // Paid videos require active subscription
+        if (!$video['is_free'] && !hasActiveSubscription($user)) {
+            setFlash('error', 'You need an active subscription to watch this video');
+            header('Location: /');
+            exit;
+        }
+
+        // Generate presigned URL for streaming
+        $r2 = getR2();
+        $videoUrl = $r2->getPresignedUrl($video['r2_key'], VIDEO_URL_TTL);
+
+        // Record view
+        $stmt = $db->prepare("INSERT INTO views (user_id, video_id) VALUES (:uid, :vid)");
+        $stmt->execute([':uid' => $user['id'], ':vid' => $videoId]);
+
+        render('watch', ['video' => $video, 'videoUrl' => $videoUrl, 'pageTitle' => $video['title']]);
+        break;
+
+    // ── Logout ───────────────────────────────────────────────
+    case '/logout':
+        logoutUser();
+        header('Location: /login');
+        exit;
+
+    // ── 404 ──────────────────────────────────────────────────
+    default:
+        http_response_code(404);
+        render('catalog', ['videos' => [], 'pageTitle' => '404', 'error' => 'Page not found']);
+}

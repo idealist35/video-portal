@@ -1,0 +1,17 @@
+{
+    "name": "affdragons/video-portal",
+    "description": "Video content portal with anime-style design",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "files": [
+            "includes/config.php",
+            "includes/db.php",
+            "includes/auth.php",
+            "includes/r2.php",
+            "includes/mailer.php"
+        ]
+    }
+}
