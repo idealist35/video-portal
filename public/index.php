@@ -232,7 +232,7 @@ switch ($path) {
 
     // ── Watch Video ──────────────────────────────────────────
     case (preg_match('#^/watch/(\d+)$#', $path, $m) ? $path : null):
-        $user = requireAuth();
+        $user = getCurrentUser();
         $videoId = (int) $m[1];
         $db = getDB();
         $stmt = $db->prepare("SELECT * FROM videos WHERE id = :id");
@@ -245,21 +245,28 @@ switch ($path) {
             break;
         }
 
-        // Free videos are accessible to all authenticated users
-        // Paid videos require active subscription
-        if (!$video['is_free'] && !hasActiveSubscription($user)) {
-            setFlash('error', 'You need an active subscription to watch this video');
-            header('Location: /');
-            exit;
+        // Free videos are accessible without login.
+        // Premium videos require authentication + active subscription.
+        if (!$video['is_free']) {
+            if (!$user) {
+                setFlash('error', 'Please log in to watch premium videos');
+                header('Location: /login');
+                exit;
+            }
+            if (!hasActiveSubscription($user)) {
+                setFlash('error', 'You need an active subscription to watch this video');
+                header('Location: /');
+                exit;
+            }
         }
 
         // Generate presigned URL for streaming
         $r2 = getR2();
         $videoUrl = $r2->getPresignedUrl($video['r2_key'], VIDEO_URL_TTL);
 
-        // Record view
+        // Record view (user_id can be NULL for guests).
         $stmt = $db->prepare("INSERT INTO views (user_id, video_id) VALUES (:uid, :vid)");
-        $stmt->execute([':uid' => $user['id'], ':vid' => $videoId]);
+        $stmt->execute([':uid' => $user['id'] ?? null, ':vid' => $videoId]);
 
         render('watch', ['video' => $video, 'videoUrl' => $videoUrl, 'pageTitle' => $video['title']]);
         break;
