@@ -1,3 +1,7 @@
+<?php
+$cssVersion = (int) (@filemtime(BASE_PATH . '/public/assets/css/style.css') ?: time());
+$jsVersion = (int) (@filemtime(BASE_PATH . '/public/assets/js/app.js') ?: time());
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +10,7 @@
     <title><?= htmlspecialchars($pageTitle ?? 'Home') ?> — <?= htmlspecialchars($siteTitle) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/style.css?v=<?= $cssVersion ?>">
 </head>
 <body>
 
@@ -48,6 +52,6 @@
     <p>&copy; <?= date('Y') ?> <?= htmlspecialchars($siteTitle) ?>. All rights reserved.</p>
 </footer>
 
-<script src="/assets/js/app.js"></script>
+<script src="/assets/js/app.js?v=<?= $jsVersion ?>"></script>
 </body>
 </html>
