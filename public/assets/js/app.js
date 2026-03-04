@@ -40,70 +40,86 @@
 // ── Local video card previews ────────────────────────────────
 
 (function initCatalogPreviews() {
-    const previews = document.querySelectorAll('.video-card__preview');
+    const previews = Array.from(document.querySelectorAll('.video-card__preview'));
     if (!previews.length) return;
 
     const supportsHover = window.matchMedia('(hover: hover)').matches;
-    const previewFrameSeconds = 0.35;
     const stopPreviewHandlers = [];
+    const hydrated = new WeakSet();
 
-    function setPreviewFrame(video) {
-        if (!Number.isFinite(video.duration) || video.duration <= 0) return;
-        const target = Math.min(previewFrameSeconds, Math.max(video.duration - 0.1, 0));
-        try {
-            video.currentTime = target;
-        } catch (error) {
-            // Some browsers throw if seek happens too early.
-        }
-    }
+    const hydratePreview = (video) => {
+        if (hydrated.has(video)) return;
+        const src = String(video.dataset.previewSrc || '').trim();
+        if (!src) return;
+        video.src = src;
+        video.load();
+        hydrated.add(video);
+    };
 
-    previews.forEach((video) => {
+    const observer = 'IntersectionObserver' in window
+        ? new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const video = entry.target;
+                if (!(video instanceof HTMLVideoElement)) return;
+                hydratePreview(video);
+                observer.unobserve(video);
+            });
+        }, {
+            rootMargin: '240px 0px 240px 0px',
+            threshold: 0.01,
+        })
+        : null;
+
+    previews.forEach((video, index) => {
         const card = video.closest('.video-card');
         if (!card) return;
 
         video.muted = true;
         video.loop = true;
         video.playsInline = true;
+        video.preload = 'none';
 
-        const onLoadedMetadata = () => setPreviewFrame(video);
-        const onSeeked = () => {
-            video.pause();
-            video.dataset.previewReady = '1';
-        };
         const markOrientation = () => {
             if (!video.videoWidth || !video.videoHeight) return;
             card.classList.toggle('video-card--preview-portrait', video.videoHeight > video.videoWidth);
         };
 
-        video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
-        video.addEventListener('loadedmetadata', markOrientation, { once: true });
-        video.addEventListener('seeked', onSeeked, { once: true });
-        if (video.readyState >= 1) {
-            setPreviewFrame(video);
-            markOrientation();
+        const markReady = () => {
+            card.classList.add('video-card--preview-ready');
+        };
+
+        video.addEventListener('loadedmetadata', markOrientation);
+        video.addEventListener('loadeddata', markReady, { once: true });
+
+        // Keep first two cards snappy, lazy-load everything else near viewport.
+        if (index < 2) {
+            hydratePreview(video);
+        } else if (observer) {
+            observer.observe(video);
+        } else {
+            hydratePreview(video);
         }
 
         const playPreview = () => {
+            hydratePreview(video);
+            if (video.dataset.previewPlaying === '1') return;
+            video.dataset.previewPlaying = '1';
+
             card.classList.add('video-card--preview-playing');
-            try {
-                video.currentTime = 0;
-            } catch (error) {
-                // Ignore seek errors and let browser continue from current frame.
-            }
             const playPromise = video.play();
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
+                    video.dataset.previewPlaying = '0';
                     card.classList.remove('video-card--preview-playing');
                 });
             }
         };
 
         const stopPreview = () => {
+            video.dataset.previewPlaying = '0';
             video.pause();
             card.classList.remove('video-card--preview-playing');
-            if (video.dataset.previewReady === '1') {
-                setPreviewFrame(video);
-            }
         };
 
         if (supportsHover) {
@@ -114,6 +130,13 @@
         card.addEventListener('focusin', playPreview);
         card.addEventListener('focusout', stopPreview);
         stopPreviewHandlers.push(stopPreview);
+
+        if (video.readyState >= 1) {
+            markOrientation();
+        }
+        if (video.readyState >= 2) {
+            markReady();
+        }
     });
 
     document.addEventListener('visibilitychange', () => {

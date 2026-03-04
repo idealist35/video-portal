@@ -444,8 +444,22 @@ a:hover {
 }
 
 .video-card:hover .video-card__thumbnail img,
-.video-card:hover .video-card__preview {
+.video-card:hover .video-card__preview,
+.video-card:hover .video-card__preview-fallback {
     transform: scale(1.08);
+}
+
+.video-card__preview-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: rgba(210, 160, 255, 0.75);
+    text-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
+    background: linear-gradient(135deg, rgba(20, 16, 48, 0.95), rgba(35, 24, 74, 0.95));
+    transition: opacity 0.25s ease, transform 0.3s ease;
 }
 
 .video-card__preview {
@@ -454,13 +468,22 @@ a:hover {
     object-fit: cover;
     object-position: center center;
     display: block;
+    opacity: 0;
     pointer-events: none;
-    transition: transform 0.3s ease, filter 0.3s ease;
+    transition: opacity 0.25s ease, transform 0.3s ease, filter 0.3s ease;
     filter: saturate(0.88) brightness(0.9);
 }
 
 .video-card--preview-portrait .video-card__preview {
     object-position: center 38%;
+}
+
+.video-card--preview-ready .video-card__preview {
+    opacity: 1;
+}
+
+.video-card--preview-ready .video-card__preview-fallback {
+    opacity: 0;
 }
 
 .video-card__preview-overlay {

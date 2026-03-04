@@ -30,13 +30,14 @@
                     <?php if ($video['thumbnail']): ?>
                         <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>">
                     <?php elseif ($previewUrl !== ''): ?>
+                        <div class="video-card__preview-fallback" aria-hidden="true">▶</div>
                         <video
                             class="video-card__preview"
                             muted
                             loop
                             playsinline
-                            preload="metadata"
-                            src="<?= htmlspecialchars($previewUrl) ?>"
+                            preload="none"
+                            data-preview-src="<?= htmlspecialchars($previewUrl) ?>"
                             aria-hidden="true"
                         ></video>
                         <div class="video-card__preview-overlay"></div>
