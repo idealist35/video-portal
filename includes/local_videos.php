@@ -1,146 +1,184 @@
 <?php
 /**
- * Local videos catalog and streaming helpers.
+ * R2 showcase helpers.
  *
- * Allows showcasing videos placed in project root (BASE_PATH) without R2.
+ * Legacy filename kept for compatibility with existing includes.
  */
 
 /**
- * Build local showcase videos from files in project root.
+ * Canonical showcase metadata for known videos.
  *
  * @return array<int, array<string, mixed>>
  */
-function getLocalVideos(): array
+function getShowcaseCatalogBlueprint(): array
 {
-    static $cache = null;
-    if ($cache !== null) {
-        return $cache;
+    static $items = null;
+    if ($items !== null) {
+        return $items;
     }
 
-    $allowedExtensions = ['mp4', 'm4v', 'mov', 'webm'];
-
-    $titleOverrides = [
-        'heygen_blue_zones_full_20260226_092506_iphone.mp4' =>
-            'The Blue Zones',
-        'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4' =>
-            'The Daily Stoic: 366 Meditations on Wisdom, Perseverance, and the Art of Living',
-        'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4' =>
-            'Dubai - The Epicenter of Modern Innovation',
-        'obesity_alexis_captioned.mp4' =>
-            'The Obesity Code: Unlocking the Secrets of Weight Loss',
-        'rich_dad_final_20260302_captioned.mp4' =>
-            'Rich Dad, Poor Dad',
+    $items = [
+        [
+            'slug' => 'blue_zones',
+            'title' => 'The Blue Zones',
+            'description' => 'A short breakdown of habits from Blue Zones communities linked to longevity.',
+            'category' => 'Health',
+            'duration' => 117,
+            'aspect_ratio' => '9:16',
+            'sort_order' => -100,
+            'match_tokens' => [
+                'heygen_blue_zones_full_20260226_092506_iphone.mp4',
+                'blue_zones',
+                'blue-zones',
+                'blue zones',
+            ],
+        ],
+        [
+            'slug' => 'daily_stoic',
+            'title' => 'The Daily Stoic: 366 Meditations on Wisdom, Perseverance, and the Art of Living',
+            'description' => 'A quick stoic reset for focus, composure, and better day-to-day decisions.',
+            'category' => 'Mindset',
+            'duration' => 102,
+            'aspect_ratio' => '9:16',
+            'sort_order' => -99,
+            'match_tokens' => [
+                'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4',
+                'daily_stoic',
+                'daily-stoic',
+                'daily stoic',
+            ],
+        ],
+        [
+            'slug' => 'dubai',
+            'title' => 'Dubai - The Epicenter of Modern Innovation',
+            'description' => 'A fast-paced Dubai cut made for short-form vertical viewing.',
+            'category' => 'Travel',
+            'duration' => 95,
+            'aspect_ratio' => '9:16',
+            'sort_order' => -98,
+            'match_tokens' => [
+                'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4',
+                'dubai',
+            ],
+        ],
+        [
+            'slug' => 'obesity_code',
+            'title' => 'The Obesity Code: Unlocking the Secrets of Weight Loss',
+            'description' => 'A concise explainer that separates common obesity myths from practical facts.',
+            'category' => 'Health',
+            'duration' => 130,
+            'aspect_ratio' => '9:16',
+            'sort_order' => -97,
+            'match_tokens' => [
+                'obesity_alexis_captioned.mp4',
+                'obesity_alexis',
+                'obesity',
+            ],
+        ],
+        [
+            'slug' => 'rich_dad',
+            'title' => 'Rich Dad, Poor Dad',
+            'description' => 'A compact summary of the money mindset lessons from Rich Dad, Poor Dad.',
+            'category' => 'Finance',
+            'duration' => 125,
+            'aspect_ratio' => '9:16',
+            'sort_order' => -96,
+            'match_tokens' => [
+                'rich_dad_final_20260302_captioned.mp4',
+                'rich_dad',
+                'rich-dad',
+                'rich dad',
+            ],
+        ],
     ];
 
-    $descriptionOverrides = [
-        'heygen_blue_zones_full_20260226_092506_iphone.mp4' =>
-            'A short breakdown of habits from Blue Zones communities linked to longevity.',
-        'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4' =>
-            'A quick stoic reset for focus, composure, and better day-to-day decisions.',
-        'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4' =>
-            'A fast-paced Dubai cut made for short-form vertical viewing.',
-        'obesity_alexis_captioned.mp4' =>
-            'A concise explainer that separates common obesity myths from practical facts.',
-        'rich_dad_final_20260302_captioned.mp4' =>
-            'A compact summary of the money mindset lessons from Rich Dad, Poor Dad.',
-    ];
-
-    $categoryOverrides = [
-        'heygen_blue_zones_full_20260226_092506_iphone.mp4' => 'Health',
-        'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4' => 'Mindset',
-        'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4' => 'Travel',
-        'obesity_alexis_captioned.mp4' => 'Health',
-        'rich_dad_final_20260302_captioned.mp4' => 'Finance',
-    ];
-
-    $durationOverrides = [
-        'heygen_blue_zones_full_20260226_092506_iphone.mp4' => 117,
-        'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4' => 102,
-        'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4' => 95,
-        'obesity_alexis_captioned.mp4' => 130,
-        'rich_dad_final_20260302_captioned.mp4' => 125,
-    ];
-
-    $aspectRatioOverrides = [
-        'heygen_blue_zones_full_20260226_092506_iphone.mp4' => '9:16',
-        'heygen_daily_stoic_full_20260227_153453_fit_scene_caption_captioned.mp4' => '9:16',
-        'heygen_dubai_full_20260226_145723_captioned_tiktok_soft_smaller.mp4' => '9:16',
-        'obesity_alexis_captioned.mp4' => '9:16',
-        'rich_dad_final_20260302_captioned.mp4' => '9:16',
-    ];
-
-    $videos = [];
-
-    try {
-        $iterator = new DirectoryIterator(BASE_PATH);
-        foreach ($iterator as $item) {
-            if (!$item->isFile()) {
-                continue;
-            }
-
-            $filename = $item->getFilename();
-            $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-            if (!in_array($extension, $allowedExtensions, true)) {
-                continue;
-            }
-            if (isTestVideoValue($filename)) {
-                continue;
-            }
-
-            $title = $titleOverrides[$filename] ?? prettifyVideoTitle($filename);
-            $description = $descriptionOverrides[$filename] ?? '';
-            $category = $categoryOverrides[$filename] ?? 'Showcase';
-            $duration = $durationOverrides[$filename] ?? 0;
-            $aspectRatio = $aspectRatioOverrides[$filename] ?? '';
-            $createdAt = gmdate('Y-m-d H:i:s', $item->getMTime());
-
-            $videos[] = [
-                'id' => 'local:' . $filename,
-                'title' => $title,
-                'description' => $description,
-                'r2_key' => '',
-                'thumbnail' => '',
-                'category' => $category,
-                'is_free' => 1,
-                'sort_order' => -100,
-                'duration' => $duration,
-                'aspect_ratio' => $aspectRatio,
-                'created_at' => $createdAt,
-                'watch_url' => '/watch/local/' . rawurlencode($filename),
-                'preview_url' => '/stream/local/' . rawurlencode($filename),
-                'source' => 'local',
-                'local_filename' => $filename,
-            ];
-        }
-    } catch (\UnexpectedValueException $e) {
-        // Directory could not be opened; keep local catalog empty.
-    }
-
-    usort($videos, function (array $a, array $b): int {
-        $timeA = strtotime((string) ($a['created_at'] ?? '')) ?: 0;
-        $timeB = strtotime((string) ($b['created_at'] ?? '')) ?: 0;
-        return $timeB <=> $timeA;
-    });
-
-    $cache = $videos;
-    return $cache;
+    return $items;
 }
 
 /**
- * Resolve local video by filename.
+ * Insert missing showcase videos into DB by discovering keys from R2 bucket.
+ */
+function syncShowcaseVideosFromR2(PDO $db, R2Client $r2): void
+{
+    $keys = $r2->listObjects('', 2000);
+    if (empty($keys)) {
+        return;
+    }
+
+    $existingKeys = $db->query("SELECT r2_key FROM videos")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    $existingSet = array_fill_keys(array_map('strval', $existingKeys), true);
+
+    $insert = $db->prepare("
+        INSERT INTO videos (title, description, r2_key, thumbnail, category, is_free, sort_order, duration)
+        VALUES (:title, :description, :r2_key, :thumbnail, :category, :is_free, :sort_order, :duration)
+    ");
+
+    foreach (getShowcaseCatalogBlueprint() as $item) {
+        $matchedKey = findBestR2KeyForShowcase($keys, (array) ($item['match_tokens'] ?? []));
+        if ($matchedKey === null || isset($existingSet[$matchedKey])) {
+            continue;
+        }
+
+        $insert->execute([
+            ':title' => (string) ($item['title'] ?? 'Untitled Video'),
+            ':description' => (string) ($item['description'] ?? ''),
+            ':r2_key' => $matchedKey,
+            ':thumbnail' => '',
+            ':category' => (string) ($item['category'] ?? ''),
+            ':is_free' => 1,
+            ':sort_order' => (int) ($item['sort_order'] ?? 0),
+            ':duration' => (int) ($item['duration'] ?? 0),
+        ]);
+
+        $existingSet[$matchedKey] = true;
+    }
+}
+
+/**
+ * Merge showcase metadata into a video row based on r2_key.
+ *
+ * @param array<string, mixed> $video
+ * @return array<string, mixed>
+ */
+function applyShowcaseMetadataToVideo(array $video): array
+{
+    $item = findShowcaseBlueprintForKey((string) ($video['r2_key'] ?? ''));
+    if ($item === null) {
+        return $video;
+    }
+
+    $video['title'] = (string) ($item['title'] ?? $video['title'] ?? '');
+    if (empty($video['description'])) {
+        $video['description'] = (string) ($item['description'] ?? '');
+    }
+    if (empty($video['category'])) {
+        $video['category'] = (string) ($item['category'] ?? '');
+    }
+    if ((int) ($video['duration'] ?? 0) <= 0) {
+        $video['duration'] = (int) ($item['duration'] ?? 0);
+    }
+    if ((int) ($video['sort_order'] ?? 0) >= 0) {
+        $video['sort_order'] = (int) ($item['sort_order'] ?? 0);
+    }
+    $video['aspect_ratio'] = (string) ($item['aspect_ratio'] ?? '');
+
+    return $video;
+}
+
+/**
+ * Resolve showcase metadata item by R2 key.
  *
  * @return array<string, mixed>|null
  */
-function findLocalVideo(string $filename): ?array
+function findShowcaseBlueprintForKey(string $r2Key): ?array
 {
-    $decoded = rawurldecode($filename);
-    if ($decoded === '' || basename($decoded) !== $decoded) {
+    if ($r2Key === '') {
         return null;
     }
 
-    foreach (getLocalVideos() as $video) {
-        if (($video['local_filename'] ?? '') === $decoded) {
-            return $video;
+    foreach (getShowcaseCatalogBlueprint() as $item) {
+        if (showcaseKeyMatchesTokens($r2Key, (array) ($item['match_tokens'] ?? []))) {
+            return $item;
         }
     }
 
@@ -148,129 +186,60 @@ function findLocalVideo(string $filename): ?array
 }
 
 /**
- * Get absolute path for a local video.
+ * Find best matching key from list of bucket keys.
+ *
+ * @param string[] $keys
+ * @param string[] $tokens
  */
-function getLocalVideoPath(array $video): string
+function findBestR2KeyForShowcase(array $keys, array $tokens): ?string
 {
-    return BASE_PATH . '/' . ($video['local_filename'] ?? '');
+    $cleanTokens = array_values(array_filter(array_map(
+        fn($t) => strtolower(trim((string) $t)),
+        $tokens
+    )));
+    if (empty($cleanTokens)) {
+        return null;
+    }
+
+    foreach ($keys as $key) {
+        $base = strtolower(basename((string) $key));
+        foreach ($cleanTokens as $token) {
+            if ($base === $token) {
+                return (string) $key;
+            }
+        }
+    }
+
+    foreach ($keys as $key) {
+        if (showcaseKeyMatchesTokens((string) $key, $cleanTokens)) {
+            return (string) $key;
+        }
+    }
+
+    return null;
 }
 
 /**
- * Stream a local video with HTTP range support.
+ * Check if R2 key matches any configured token.
+ *
+ * @param string[] $tokens
  */
-function streamLocalVideo(string $filePath): void
+function showcaseKeyMatchesTokens(string $r2Key, array $tokens): bool
 {
-    if (!is_file($filePath) || !is_readable($filePath)) {
-        http_response_code(404);
-        echo 'Video file not found';
-        return;
+    $key = strtolower($r2Key);
+    $base = strtolower(basename($r2Key));
+
+    foreach ($tokens as $tokenRaw) {
+        $token = strtolower(trim((string) $tokenRaw));
+        if ($token === '') {
+            continue;
+        }
+        if ($base === $token || str_contains($base, $token) || str_contains($key, $token)) {
+            return true;
+        }
     }
 
-    $size = filesize($filePath);
-    if ($size === false || $size <= 0) {
-        http_response_code(404);
-        echo 'Video file not found';
-        return;
-    }
-
-    $start = 0;
-    $end = $size - 1;
-    $length = $size;
-
-    $rangeHeader = $_SERVER['HTTP_RANGE'] ?? '';
-    if ($rangeHeader !== '' && preg_match('/bytes=(\d*)-(\d*)/i', $rangeHeader, $matches)) {
-        if ($matches[1] === '' && $matches[2] === '') {
-            http_response_code(416);
-            header("Content-Range: bytes */{$size}");
-            return;
-        }
-
-        if ($matches[1] === '') {
-            $suffix = (int) $matches[2];
-            $start = max(0, $size - $suffix);
-        } else {
-            $start = (int) $matches[1];
-        }
-
-        if ($matches[2] !== '') {
-            $end = (int) $matches[2];
-        }
-
-        $end = min($end, $size - 1);
-        if ($start > $end || $start >= $size) {
-            http_response_code(416);
-            header("Content-Range: bytes */{$size}");
-            return;
-        }
-
-        $length = $end - $start + 1;
-        http_response_code(206);
-        header("Content-Range: bytes {$start}-{$end}/{$size}");
-    }
-
-    $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-    $mimeTypes = [
-        'mp4' => 'video/mp4',
-        'm4v' => 'video/mp4',
-        'mov' => 'video/quicktime',
-        'webm' => 'video/webm',
-    ];
-    $contentType = $mimeTypes[$extension] ?? 'application/octet-stream';
-
-    header('Content-Type: ' . $contentType);
-    header('Content-Length: ' . $length);
-    header('Accept-Ranges: bytes');
-    header('Cache-Control: public, max-age=3600');
-
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
-        return;
-    }
-
-    $handle = fopen($filePath, 'rb');
-    if ($handle === false) {
-        http_response_code(500);
-        echo 'Failed to open video stream';
-        return;
-    }
-
-    set_time_limit(0);
-    fseek($handle, $start);
-
-    $bufferSize = 1024 * 1024;
-    $remaining = $length;
-
-    while ($remaining > 0 && !feof($handle)) {
-        $chunkSize = (int) min($bufferSize, $remaining);
-        $buffer = fread($handle, $chunkSize);
-        if ($buffer === false || $buffer === '') {
-            break;
-        }
-
-        echo $buffer;
-        $remaining -= strlen($buffer);
-
-        if (connection_aborted()) {
-            break;
-        }
-        flush();
-    }
-
-    fclose($handle);
-}
-
-/**
- * Convert technical filename into a human-readable fallback title.
- */
-function prettifyVideoTitle(string $filename): string
-{
-    $title = pathinfo($filename, PATHINFO_FILENAME);
-
-    $title = preg_replace('/\d{8}_\d{6}/', ' ', $title) ?? $title;
-    $title = preg_replace('/\b(heygen|full|final|captioned|caption|scene|fit|iphone)\b/i', ' ', $title) ?? $title;
-    $title = str_replace(['_', '-'], ' ', $title);
-    $title = preg_replace('/\s+/', ' ', trim($title)) ?? $title;
-
-    return $title !== '' ? ucwords(strtolower($title)) : 'Untitled Video';
+    return false;
 }
 
 /**
@@ -297,7 +266,7 @@ function isTestVideoRecord(array $video): bool
         (string) ($video['title'] ?? ''),
         (string) ($video['description'] ?? ''),
         (string) ($video['category'] ?? ''),
-        (string) ($video['local_filename'] ?? ''),
+        (string) ($video['r2_key'] ?? ''),
     ];
 
     foreach ($candidates as $candidate) {
@@ -308,3 +277,4 @@ function isTestVideoRecord(array $video): bool
 
     return false;
 }
+

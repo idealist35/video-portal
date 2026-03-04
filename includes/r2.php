@@ -117,6 +117,81 @@ class R2Client
         return $httpCode >= 200 && $httpCode < 300;
     }
 
+    /**
+     * List object keys from R2 bucket.
+     *
+     * @return string[]
+     */
+    public function listObjects(string $prefix = '', int $limit = 1000): array
+    {
+        $limit = max(1, min($limit, 5000));
+        $keys = [];
+        $continuationToken = '';
+
+        while (count($keys) < $limit) {
+            $pageSize = min(1000, $limit - count($keys));
+
+            $queryParams = [
+                'list-type' => '2',
+                'max-keys' => (string) $pageSize,
+            ];
+            if ($prefix !== '') {
+                $queryParams['prefix'] = $prefix;
+            }
+            if ($continuationToken !== '') {
+                $queryParams['continuation-token'] = $continuationToken;
+            }
+
+            ksort($queryParams);
+            $query = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+
+            $path = '/' . $this->bucket . '/';
+            $url = $this->endpoint . $path . '?' . $query;
+
+            $now = gmdate('Ymd\THis\Z');
+            $date = gmdate('Ymd');
+            $headers = [
+                'host' => parse_url($url, PHP_URL_HOST),
+                'x-amz-date' => $now,
+                'x-amz-content-sha256' => hash('sha256', ''),
+            ];
+
+            $authHeader = $this->buildAuthHeader('GET', $path, $query, $headers, '', $now, $date);
+            $headers['authorization'] = $authHeader;
+
+            $curlHeaders = [];
+            foreach ($headers as $k => $v) {
+                $curlHeaders[] = $k . ': ' . $v;
+            }
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => $curlHeaders,
+                CURLOPT_RETURNTRANSFER => true,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if (!is_string($response) || $httpCode < 200 || $httpCode >= 300) {
+                throw new RuntimeException('Failed to list objects from R2 bucket');
+            }
+
+            [$pageKeys, $isTruncated, $nextToken] = $this->parseListObjectsV2Response($response);
+            if (!empty($pageKeys)) {
+                $keys = array_merge($keys, $pageKeys);
+            }
+
+            if (!$isTruncated || $nextToken === '') {
+                break;
+            }
+            $continuationToken = $nextToken;
+        }
+
+        return array_slice(array_values(array_unique($keys)), 0, $limit);
+    }
+
     // ── Presigned URL (AWS Signature V4) ─────────────────────
 
     private function presign(string $method, string $key, int $ttl): string
@@ -224,6 +299,51 @@ class R2Client
     private function uriEncodePath(string $path): string
     {
         return implode('/', array_map('rawurlencode', explode('/', $path)));
+    }
+
+    /**
+     * Parse XML response from ListObjectsV2.
+     *
+     * @return array{0:string[],1:bool,2:string}
+     */
+    private function parseListObjectsV2Response(string $xml): array
+    {
+        $keys = [];
+        $isTruncated = false;
+        $nextToken = '';
+
+        if (function_exists('simplexml_load_string')) {
+            $parsed = @simplexml_load_string($xml);
+            if ($parsed !== false) {
+                foreach ($parsed->Contents ?? [] as $content) {
+                    $key = (string) ($content->Key ?? '');
+                    if ($key !== '') {
+                        $keys[] = $key;
+                    }
+                }
+                $isTruncated = strtolower((string) ($parsed->IsTruncated ?? 'false')) === 'true';
+                $nextToken = (string) ($parsed->NextContinuationToken ?? '');
+
+                return [$keys, $isTruncated, $nextToken];
+            }
+        }
+
+        if (preg_match_all('/<Key>(.*?)<\/Key>/s', $xml, $matches)) {
+            foreach ($matches[1] as $rawKey) {
+                $key = html_entity_decode($rawKey, ENT_QUOTES | ENT_XML1, 'UTF-8');
+                if ($key !== '') {
+                    $keys[] = $key;
+                }
+            }
+        }
+        if (preg_match('/<IsTruncated>(.*?)<\/IsTruncated>/s', $xml, $m)) {
+            $isTruncated = strtolower(trim($m[1])) === 'true';
+        }
+        if (preg_match('/<NextContinuationToken>(.*?)<\/NextContinuationToken>/s', $xml, $m)) {
+            $nextToken = html_entity_decode($m[1], ENT_QUOTES | ENT_XML1, 'UTF-8');
+        }
+
+        return [$keys, $isTruncated, $nextToken];
     }
 }
 

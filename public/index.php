@@ -88,23 +88,32 @@ function getFlash(): ?array
 }
 
 /**
- * Merge database videos with local showcase files.
+ * Build catalog videos from DB + R2 metadata.
  *
  * @return array<int, array<string, mixed>>
  */
-function buildCatalogVideos(PDO $db): array
+function buildCatalogVideos(PDO $db, R2Client $r2): array
 {
+    try {
+        syncShowcaseVideosFromR2($db, $r2);
+    } catch (\Throwable $e) {
+        // Keep catalog available even if listing bucket fails.
+    }
+
     $dbVideos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
     $dbVideos = array_values(array_filter($dbVideos, fn(array $video): bool => !isTestVideoRecord($video)));
+
     foreach ($dbVideos as &$video) {
+        $video = applyShowcaseMetadataToVideo($video);
         $video['watch_url'] = '/watch/' . $video['id'];
         $video['source'] = 'r2';
+        if (!empty($video['r2_key']) && (int) ($video['is_free'] ?? 0) === 1) {
+            $video['preview_url'] = $r2->getPresignedUrl((string) $video['r2_key'], VIDEO_URL_TTL);
+        }
     }
     unset($video);
 
-    $videos = array_merge(getLocalVideos(), $dbVideos);
-
-    usort($videos, function (array $a, array $b): int {
+    usort($dbVideos, function (array $a, array $b): int {
         $sortA = (int) ($a['sort_order'] ?? 0);
         $sortB = (int) ($b['sort_order'] ?? 0);
         if ($sortA !== $sortB) {
@@ -120,7 +129,7 @@ function buildCatalogVideos(PDO $db): array
         return strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''));
     });
 
-    return $videos;
+    return $dbVideos;
 }
 
 switch ($path) {
@@ -128,7 +137,8 @@ switch ($path) {
     // ── Home / Catalog ───────────────────────────────────────
     case '/':
         $db = getDB();
-        $videos = buildCatalogVideos($db);
+        $r2 = getR2();
+        $videos = buildCatalogVideos($db, $r2);
         render('catalog', ['videos' => $videos, 'pageTitle' => 'Catalog']);
         break;
 
@@ -268,35 +278,6 @@ switch ($path) {
         break;
 
     // ── Watch Video ──────────────────────────────────────────
-    case (preg_match('#^/stream/local/(.+)$#', $path, $mLocalStream) ? $path : null):
-        $video = findLocalVideo($mLocalStream[1]);
-        if (!$video) {
-            http_response_code(404);
-            header('Content-Type: text/plain; charset=utf-8');
-            echo 'Video not found';
-            break;
-        }
-
-        streamLocalVideo(getLocalVideoPath($video));
-        exit;
-
-    case (preg_match('#^/watch/local/(.+)$#', $path, $mLocalWatch) ? $path : null):
-        $video = findLocalVideo($mLocalWatch[1]);
-        if (!$video) {
-            http_response_code(404);
-            $db = getDB();
-            render('catalog', [
-                'videos' => buildCatalogVideos($db),
-                'pageTitle' => 'Not Found',
-                'error' => 'Video not found',
-            ]);
-            break;
-        }
-
-        $videoUrl = '/stream/local/' . rawurlencode((string) $video['local_filename']);
-        render('watch', ['video' => $video, 'videoUrl' => $videoUrl, 'pageTitle' => $video['title']]);
-        break;
-
     case (preg_match('#^/watch/(\d+)$#', $path, $m) ? $path : null):
         $user = getCurrentUser();
         $videoId = (int) $m[1];
@@ -307,13 +288,16 @@ switch ($path) {
 
         if (!$video) {
             http_response_code(404);
+            $r2 = getR2();
             render('catalog', [
-                'videos' => buildCatalogVideos($db),
+                'videos' => buildCatalogVideos($db, $r2),
                 'pageTitle' => 'Not Found',
                 'error' => 'Video not found',
             ]);
             break;
         }
+
+        $video = applyShowcaseMetadataToVideo($video);
 
         // Free videos are accessible without login.
         // Premium videos require authentication + active subscription.

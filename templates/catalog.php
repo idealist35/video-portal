@@ -49,9 +49,6 @@
                     <?php else: ?>
                         <span class="badge badge-premium">Premium</span>
                     <?php endif; ?>
-                    <?php if (($video['source'] ?? '') === 'local'): ?>
-                        <span class="badge badge-local">Local</span>
-                    <?php endif; ?>
                     <?php if ($duration > 0): ?>
                         <span class="video-card__duration"><?= $durationLabel ?></span>
                     <?php endif; ?>
