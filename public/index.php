@@ -20,6 +20,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/r2.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/local_videos.php';
 
 // Parse request path
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -86,12 +87,58 @@ function getFlash(): ?array
     return $flash;
 }
 
+/**
+ * Build catalog videos from DB + R2 metadata.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function buildCatalogVideos(PDO $db, R2Client $r2): array
+{
+    try {
+        syncShowcaseVideosFromR2($db, $r2);
+    } catch (\Throwable $e) {
+        // Keep catalog available even if listing bucket fails.
+    }
+
+    $dbVideos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
+    $dbVideos = array_values(array_filter($dbVideos, fn(array $video): bool => !isTestVideoRecord($video)));
+
+    foreach ($dbVideos as &$video) {
+        $video = applyShowcaseMetadataToVideo($video);
+        $video['watch_url'] = '/watch/' . $video['id'];
+        $video['source'] = 'r2';
+        if (!empty($video['r2_key']) && (int) ($video['is_free'] ?? 0) === 1) {
+            $video['preview_url'] = $r2->getPresignedUrl((string) $video['r2_key'], VIDEO_URL_TTL);
+        }
+    }
+    unset($video);
+
+    usort($dbVideos, function (array $a, array $b): int {
+        $sortA = (int) ($a['sort_order'] ?? 0);
+        $sortB = (int) ($b['sort_order'] ?? 0);
+        if ($sortA !== $sortB) {
+            return $sortA <=> $sortB;
+        }
+
+        $createdA = strtotime((string) ($a['created_at'] ?? '')) ?: 0;
+        $createdB = strtotime((string) ($b['created_at'] ?? '')) ?: 0;
+        if ($createdA !== $createdB) {
+            return $createdB <=> $createdA;
+        }
+
+        return strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''));
+    });
+
+    return $dbVideos;
+}
+
 switch ($path) {
 
     // ── Home / Catalog ───────────────────────────────────────
     case '/':
         $db = getDB();
-        $videos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
+        $r2 = getR2();
+        $videos = buildCatalogVideos($db, $r2);
         render('catalog', ['videos' => $videos, 'pageTitle' => 'Catalog']);
         break;
 
@@ -241,9 +288,16 @@ switch ($path) {
 
         if (!$video) {
             http_response_code(404);
-            render('catalog', ['videos' => [], 'pageTitle' => 'Not Found', 'error' => 'Video not found']);
+            $r2 = getR2();
+            render('catalog', [
+                'videos' => buildCatalogVideos($db, $r2),
+                'pageTitle' => 'Not Found',
+                'error' => 'Video not found',
+            ]);
             break;
         }
+
+        $video = applyShowcaseMetadataToVideo($video);
 
         // Free videos are accessible without login.
         // Premium videos require authentication + active subscription.

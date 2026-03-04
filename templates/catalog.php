@@ -6,8 +6,8 @@
 <?php else: ?>
 
 <div class="catalog-header">
-    <h1 class="catalog-title">Video Library</h1>
-    <p class="catalog-subtitle">Explore our collection</p>
+    <h1 class="catalog-title">Video Showcase</h1>
+    <p class="catalog-subtitle">Latest projects and selected uploads</p>
 </div>
 
 <?php if (empty($videos)): ?>
@@ -19,10 +19,28 @@
 <?php else: ?>
     <div class="video-grid">
         <?php foreach ($videos as $video): ?>
+            <?php
+                $watchUrl = $video['watch_url'] ?? ('/watch/' . urlencode((string) $video['id']));
+                $previewUrl = (string) ($video['preview_url'] ?? '');
+                $duration = (int) ($video['duration'] ?? 0);
+                $durationLabel = $duration >= 3600 ? gmdate('H:i:s', $duration) : gmdate('i:s', $duration);
+            ?>
             <div class="video-card <?= $video['is_free'] ? 'video-card--free' : 'video-card--premium' ?>">
                 <div class="video-card__thumbnail">
                     <?php if ($video['thumbnail']): ?>
                         <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>">
+                    <?php elseif ($previewUrl !== ''): ?>
+                        <video
+                            class="video-card__preview"
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                            src="<?= htmlspecialchars($previewUrl) ?>"
+                            aria-hidden="true"
+                        ></video>
+                        <div class="video-card__preview-overlay"></div>
+                        <div class="video-card__preview-play">▶</div>
                     <?php else: ?>
                         <div class="video-card__placeholder">▶</div>
                     <?php endif; ?>
@@ -31,8 +49,8 @@
                     <?php else: ?>
                         <span class="badge badge-premium">Premium</span>
                     <?php endif; ?>
-                    <?php if ($video['duration']): ?>
-                        <span class="video-card__duration"><?= gmdate('i:s', $video['duration']) ?></span>
+                    <?php if ($duration > 0): ?>
+                        <span class="video-card__duration"><?= $durationLabel ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="video-card__body">
@@ -44,7 +62,7 @@
                         <span class="video-card__category"><?= htmlspecialchars($video['category']) ?></span>
                     <?php endif; ?>
                 </div>
-                <a href="/watch/<?= $video['id'] ?>" class="video-card__link"></a>
+                <a href="<?= htmlspecialchars($watchUrl) ?>" class="video-card__link"></a>
             </div>
         <?php endforeach; ?>
     </div>

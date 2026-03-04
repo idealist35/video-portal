@@ -41,6 +41,8 @@ function getDB(): PDO
         initSchema($db);
     }
 
+    applyMigrations($db);
+
     return $db;
 }
 
@@ -100,4 +102,52 @@ function initSchema(PDO $db): void
         CREATE INDEX IF NOT EXISTS idx_views_video ON views(video_id);
         CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email);
     ");
+}
+
+/**
+ * Apply SQL migrations from MIGRATIONS_PATH once.
+ */
+function applyMigrations(PDO $db): void
+{
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            applied_at TEXT DEFAULT (datetime('now'))
+        );
+    ");
+
+    if (!is_dir(MIGRATIONS_PATH)) {
+        return;
+    }
+
+    $files = glob(MIGRATIONS_PATH . '/*.sql') ?: [];
+    sort($files, SORT_STRING);
+
+    $applied = $db->query("SELECT name FROM schema_migrations")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    $appliedSet = array_fill_keys($applied, true);
+
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (isset($appliedSet[$name])) {
+            continue;
+        }
+
+        $sql = trim((string) file_get_contents($file));
+
+        $db->beginTransaction();
+        try {
+            if ($sql !== '') {
+                $db->exec($sql);
+            }
+            $stmt = $db->prepare("INSERT INTO schema_migrations (name) VALUES (:name)");
+            $stmt->execute([':name' => $name]);
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
 }
