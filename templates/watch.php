@@ -1,4 +1,5 @@
-<div class="watch-page">
+<?php $forcePortrait = (($video['aspect_ratio'] ?? '') === '9:16'); ?>
+<div class="watch-page<?= $forcePortrait ? ' watch-page--portrait' : '' ?>" data-force-portrait="<?= $forcePortrait ? '1' : '0' ?>">
     <div class="player-container">
         <video id="videoPlayer" class="video-player" controls preload="metadata"
                controlsList="nodownload">

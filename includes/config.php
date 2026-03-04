@@ -33,6 +33,7 @@ define('BASE_PATH', dirname(__DIR__));
 define('DATA_PATH', BASE_PATH . '/data');
 define('TEMPLATES_PATH', BASE_PATH . '/templates');
 define('EMAILS_PATH', BASE_PATH . '/emails');
+define('MIGRATIONS_PATH', BASE_PATH . '/migrations');
 
 // -- SQLite --
 define('DB_PATH', DATA_PATH . '/portal.db');

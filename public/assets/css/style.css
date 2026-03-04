@@ -26,6 +26,7 @@
     --error: #f87171;
     --free-badge: #38bdf8;
     --premium-badge: #fbbf24;
+    --local-badge: #22c55e;
 
     --radius: 12px;
     --radius-sm: 8px;
@@ -214,6 +215,11 @@ a:hover {
 .badge-free {
     background: var(--free-badge);
     color: #0c2d48;
+}
+
+.badge-local {
+    background: var(--local-badge);
+    color: #082817;
 }
 
 /* ── Flash Messages ───────────────────────── */
@@ -437,8 +443,54 @@ a:hover {
     transition: transform 0.3s ease;
 }
 
-.video-card:hover .video-card__thumbnail img {
+.video-card:hover .video-card__thumbnail img,
+.video-card:hover .video-card__preview {
     transform: scale(1.08);
+}
+
+.video-card__preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    pointer-events: none;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: saturate(0.88) brightness(0.9);
+}
+
+.video-card--preview-portrait .video-card__preview {
+    object-position: center 38%;
+}
+
+.video-card__preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(13, 11, 26, 0.18) 0%, rgba(13, 11, 26, 0.45) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.video-card__preview-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: rgba(210, 160, 255, 0.9);
+    text-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+    pointer-events: none;
+    z-index: 2;
+    transition: opacity 0.25s ease;
+}
+
+.video-card--preview-playing .video-card__preview-play {
+    opacity: 0;
+}
+
+.video-card--preview-playing .video-card__preview {
+    filter: saturate(1) brightness(1);
 }
 
 .video-card__placeholder {
@@ -456,7 +508,12 @@ a:hover {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 1;
+    z-index: 3;
+}
+
+.video-card__thumbnail .badge-local {
+    left: auto;
+    right: 10px;
 }
 
 .video-card__duration {
@@ -469,6 +526,7 @@ a:hover {
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 600;
+    z-index: 3;
 }
 
 .video-card__body {
@@ -503,7 +561,7 @@ a:hover {
 /* ── Watch Page ───────────────────────────── */
 
 .watch-page {
-    max-width: 900px;
+    max-width: 1100px;
     margin: 0 auto;
 }
 
@@ -513,12 +571,39 @@ a:hover {
     box-shadow: var(--shadow), 0 0 60px var(--accent-glow);
     border: 1px solid var(--border);
     margin-bottom: 24px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: calc(100vh - 190px);
+    min-height: 260px;
 }
 
 .video-player {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(100vh - 190px);
     display: block;
     background: #000;
+}
+
+.watch-page--portrait .player-container {
+    width: min(100%, 430px);
+    max-width: 430px;
+    aspect-ratio: 9 / 16;
+    min-height: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.watch-page--portrait .video-player {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    object-position: center center;
 }
 
 .video-info {
@@ -634,6 +719,16 @@ a:hover {
 
     .video-info__title {
         font-size: 1.2rem;
+    }
+
+    .player-container,
+    .video-player {
+        max-height: calc(100vh - 170px);
+    }
+
+    .watch-page--portrait .player-container {
+        width: min(100%, 360px);
+        max-width: 360px;
     }
 }
 

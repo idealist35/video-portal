@@ -1,0 +1,17 @@
+DELETE FROM videos
+WHERE lower(coalesce(title, '')) LIKE '%test%'
+   OR lower(coalesce(title, '')) LIKE '%demo%'
+   OR lower(coalesce(title, '')) LIKE '%sample%'
+   OR lower(coalesce(title, '')) LIKE '%draft%'
+   OR lower(coalesce(description, '')) LIKE '%test%'
+   OR lower(coalesce(description, '')) LIKE '%demo%'
+   OR lower(coalesce(description, '')) LIKE '%sample%'
+   OR lower(coalesce(description, '')) LIKE '%draft%'
+   OR lower(coalesce(category, '')) LIKE '%test%'
+   OR lower(coalesce(category, '')) LIKE '%demo%'
+   OR lower(coalesce(category, '')) LIKE '%sample%'
+   OR lower(coalesce(category, '')) LIKE '%draft%'
+   OR lower(coalesce(r2_key, '')) LIKE '%test%'
+   OR lower(coalesce(r2_key, '')) LIKE '%demo%'
+   OR lower(coalesce(r2_key, '')) LIKE '%sample%'
+   OR lower(coalesce(r2_key, '')) LIKE '%draft%';

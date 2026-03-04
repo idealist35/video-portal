@@ -20,6 +20,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/r2.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/local_videos.php';
 
 // Parse request path
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -86,12 +87,48 @@ function getFlash(): ?array
     return $flash;
 }
 
+/**
+ * Merge database videos with local showcase files.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function buildCatalogVideos(PDO $db): array
+{
+    $dbVideos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
+    $dbVideos = array_values(array_filter($dbVideos, fn(array $video): bool => !isTestVideoRecord($video)));
+    foreach ($dbVideos as &$video) {
+        $video['watch_url'] = '/watch/' . $video['id'];
+        $video['source'] = 'r2';
+    }
+    unset($video);
+
+    $videos = array_merge(getLocalVideos(), $dbVideos);
+
+    usort($videos, function (array $a, array $b): int {
+        $sortA = (int) ($a['sort_order'] ?? 0);
+        $sortB = (int) ($b['sort_order'] ?? 0);
+        if ($sortA !== $sortB) {
+            return $sortA <=> $sortB;
+        }
+
+        $createdA = strtotime((string) ($a['created_at'] ?? '')) ?: 0;
+        $createdB = strtotime((string) ($b['created_at'] ?? '')) ?: 0;
+        if ($createdA !== $createdB) {
+            return $createdB <=> $createdA;
+        }
+
+        return strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''));
+    });
+
+    return $videos;
+}
+
 switch ($path) {
 
     // ── Home / Catalog ───────────────────────────────────────
     case '/':
         $db = getDB();
-        $videos = $db->query("SELECT * FROM videos ORDER BY sort_order ASC, created_at DESC")->fetchAll();
+        $videos = buildCatalogVideos($db);
         render('catalog', ['videos' => $videos, 'pageTitle' => 'Catalog']);
         break;
 
@@ -231,6 +268,35 @@ switch ($path) {
         break;
 
     // ── Watch Video ──────────────────────────────────────────
+    case (preg_match('#^/stream/local/(.+)$#', $path, $mLocalStream) ? $path : null):
+        $video = findLocalVideo($mLocalStream[1]);
+        if (!$video) {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Video not found';
+            break;
+        }
+
+        streamLocalVideo(getLocalVideoPath($video));
+        exit;
+
+    case (preg_match('#^/watch/local/(.+)$#', $path, $mLocalWatch) ? $path : null):
+        $video = findLocalVideo($mLocalWatch[1]);
+        if (!$video) {
+            http_response_code(404);
+            $db = getDB();
+            render('catalog', [
+                'videos' => buildCatalogVideos($db),
+                'pageTitle' => 'Not Found',
+                'error' => 'Video not found',
+            ]);
+            break;
+        }
+
+        $videoUrl = '/stream/local/' . rawurlencode((string) $video['local_filename']);
+        render('watch', ['video' => $video, 'videoUrl' => $videoUrl, 'pageTitle' => $video['title']]);
+        break;
+
     case (preg_match('#^/watch/(\d+)$#', $path, $m) ? $path : null):
         $user = getCurrentUser();
         $videoId = (int) $m[1];
@@ -241,7 +307,11 @@ switch ($path) {
 
         if (!$video) {
             http_response_code(404);
-            render('catalog', ['videos' => [], 'pageTitle' => 'Not Found', 'error' => 'Video not found']);
+            render('catalog', [
+                'videos' => buildCatalogVideos($db),
+                'pageTitle' => 'Not Found',
+                'error' => 'Video not found',
+            ]);
             break;
         }
 
