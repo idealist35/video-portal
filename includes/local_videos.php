@@ -113,24 +113,38 @@ function syncShowcaseVideosFromR2(PDO $db, R2Client $r2): void
         VALUES (:title, :description, :r2_key, :thumbnail, :category, :is_free, :sort_order, :duration)
     ");
 
-    foreach (getShowcaseCatalogBlueprint() as $item) {
-        $matchedKey = findBestR2KeyForShowcase($keys, (array) ($item['match_tokens'] ?? []));
-        if ($matchedKey === null || isset($existingSet[$matchedKey])) {
+    foreach ($keys as $keyRaw) {
+        $key = (string) $keyRaw;
+        if (!isVideoObjectKey($key) || isset($existingSet[$key])) {
+            continue;
+        }
+        if (isTestVideoValue($key)) {
+            continue;
+        }
+
+        $item = findShowcaseBlueprintForKey($key);
+        $title = $item['title'] ?? prettifyR2ObjectTitle($key);
+        $description = $item['description'] ?? '';
+        $category = $item['category'] ?? 'Showcase';
+        $sortOrder = (int) ($item['sort_order'] ?? 100);
+        $duration = (int) ($item['duration'] ?? 0);
+
+        if (isTestVideoValue((string) $title) || isTestVideoValue((string) $description)) {
             continue;
         }
 
         $insert->execute([
-            ':title' => (string) ($item['title'] ?? 'Untitled Video'),
-            ':description' => (string) ($item['description'] ?? ''),
-            ':r2_key' => $matchedKey,
+            ':title' => (string) $title,
+            ':description' => (string) $description,
+            ':r2_key' => $key,
             ':thumbnail' => '',
-            ':category' => (string) ($item['category'] ?? ''),
+            ':category' => (string) $category,
             ':is_free' => 1,
-            ':sort_order' => (int) ($item['sort_order'] ?? 0),
-            ':duration' => (int) ($item['duration'] ?? 0),
+            ':sort_order' => $sortOrder,
+            ':duration' => $duration,
         ]);
 
-        $existingSet[$matchedKey] = true;
+        $existingSet[$key] = true;
     }
 }
 
@@ -220,6 +234,32 @@ function findBestR2KeyForShowcase(array $keys, array $tokens): ?string
 }
 
 /**
+ * Determine whether an object key is a supported video file.
+ */
+function isVideoObjectKey(string $key): bool
+{
+    $path = strtolower(trim($key));
+    if ($path === '') {
+        return false;
+    }
+
+    return (bool) preg_match('/\.(mp4|m4v|mov|webm)$/i', $path);
+}
+
+/**
+ * Convert an R2 object key into human-readable title.
+ */
+function prettifyR2ObjectTitle(string $key): string
+{
+    $base = pathinfo(basename($key), PATHINFO_FILENAME);
+    $title = str_replace(['_', '-'], ' ', $base);
+    $title = preg_replace('/\d{8}_\d{6}/', ' ', $title) ?? $title;
+    $title = preg_replace('/\s+/', ' ', trim($title)) ?? $title;
+
+    return $title !== '' ? ucwords(strtolower($title)) : 'Untitled Video';
+}
+
+/**
  * Check if R2 key matches any configured token.
  *
  * @param string[] $tokens
@@ -277,4 +317,3 @@ function isTestVideoRecord(array $video): bool
 
     return false;
 }
-
