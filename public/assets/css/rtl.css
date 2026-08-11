@@ -1,0 +1,282 @@
+/**
+ * Right-to-left overrides, loaded only when the page renders in Arabic.
+ *
+ * Most of the layout is flex and grid, which mirrors on its own once <html> has
+ * dir="rtl". What is left is the handful of places that pin a corner with a
+ * physical left/right offset, align text to a physical edge, or point an arrow
+ * at a physical direction. Those are listed here rather than converted to
+ * logical properties in streaming.css, so the LTR rendering is untouched.
+ */
+
+/* ── Typography ──────────────────────────────────────────── */
+:root {
+    --font-arabic: "IBM Plex Sans Arabic", "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+    font-family: var(--font-arabic);
+    /* Arabic has no small caps and letter-spacing breaks joined script. */
+    letter-spacing: normal;
+}
+
+h1,
+h2,
+h3 {
+    letter-spacing: normal;
+    line-height: 1.2;
+}
+
+/* Uppercasing and wide tracking do nothing to Arabic but do force the shaper
+   to letter-space cursive joins, so both are dropped wherever they were set. */
+.brand__wordmark em,
+.language-chip,
+.access-chip,
+.language-switch__option,
+.match-label,
+.age-label,
+.section-kicker,
+.live-kicker,
+.quality-label,
+.original-label,
+.stream-card__flag,
+.stream-card__quality,
+.streaming-proof__inner,
+.up-next__label,
+.season-stream__number,
+.cast-card__status,
+.cast-hero__label,
+.coming-player__badge,
+.watch-cta__status,
+.watch-player__signal {
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.brand__wordmark {
+    letter-spacing: normal;
+}
+
+.brand__wordmark em {
+    font-size: .85rem;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.skip-link {
+    right: 8px;
+    left: auto;
+}
+
+.nav-toggle {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+.language-switch {
+    padding: 3px 9px 3px 4px;
+}
+
+/* ── Directional icons ───────────────────────────────────── */
+/* Chevrons carry reading direction; play triangles and the rest do not, which
+   is why only .icon-arrow flips. */
+.icon-arrow {
+    transform: scaleX(-1);
+}
+
+/* ── Home ────────────────────────────────────────────────── */
+.stream-hero__content {
+    right: clamp(28px, 5vw, 70px);
+    left: auto;
+}
+
+.hero-play {
+    right: auto;
+    left: clamp(30px, 7vw, 90px);
+}
+
+.watch-cta__status {
+    right: auto;
+    left: 22px;
+}
+
+/* Elements centred with left:50% + translateX(-50%) need nothing here: both
+   the offset and the transform are physical, so they stay centred under RTL. */
+
+/* ── Episode cards ───────────────────────────────────────── */
+.stream-card__flag {
+    right: 10px;
+    left: auto;
+}
+
+.stream-card__quality {
+    right: auto;
+    left: 10px;
+}
+
+.stream-card__watched {
+    right: 9px;
+    left: auto;
+}
+
+.stream-card__meta span + span::before {
+    right: -8px;
+    left: auto;
+}
+
+.season-stream__number {
+    right: 16px;
+    left: auto;
+}
+
+/* ── Series page ─────────────────────────────────────────── */
+.series-hero__copy {
+    right: clamp(30px, 5vw, 68px);
+    left: auto;
+}
+
+.season-status,
+.detailed-map-season__status {
+    text-align: left;
+}
+
+.coming-player__badge {
+    right: 20px;
+    left: auto;
+}
+
+/* ── Series map ──────────────────────────────────────────── */
+.detailed-map-card__play {
+    right: auto;
+    left: 14px;
+}
+
+.detailed-map-stop:nth-child(odd) .detailed-map-card:hover {
+    transform: translateX(5px);
+}
+
+.detailed-map-stop:nth-child(even) .detailed-map-card:hover {
+    transform: translateX(-5px);
+}
+
+/* ── Watch page ──────────────────────────────────────────── */
+.watch-breadcrumb a {
+    margin-right: 0;
+    margin-left: auto;
+}
+
+.watch-player__signal {
+    right: auto;
+    left: 18px;
+}
+
+.up-next__screen small {
+    right: 6px;
+    left: auto;
+}
+
+.up-next__screen b {
+    right: auto;
+    left: 6px;
+}
+
+.episode-navigation__item--next {
+    text-align: left;
+}
+
+/* ── Cast ────────────────────────────────────────────────── */
+.cast-hero__actions > span {
+    margin-right: 8px;
+    margin-left: 0;
+}
+
+.cast-hero__label {
+    right: 18px;
+    left: auto;
+}
+
+.cast-card__index {
+    right: 14px;
+    left: auto;
+}
+
+.cast-card__status {
+    right: auto;
+    left: 13px;
+}
+
+/* ── Back to top ─────────────────────────────────────────── */
+.back-to-top {
+    right: auto;
+    left: 22px;
+}
+
+/* ── Decorative backdrop ─────────────────────────────────── */
+.app-backdrop__glow--one {
+    right: -22vw;
+    left: auto;
+}
+
+.app-backdrop__glow--two {
+    right: auto;
+    left: -26vw;
+}
+
+/* ── Breakpoints ─────────────────────────────────────────── */
+/* These mirror streaming.css's own 1100 / 820 / 560 breakpoints. Because this
+   file loads second, its desktop rules would otherwise outrank the narrow-width
+   rules there, so anything pinned to both edges below has to be restated. */
+@media (max-width: 1100px) {
+    /* The audio chip hides at this width to save room; the language switch
+       must not, since it is the only way back to English. */
+    .language-switch {
+        order: -1;
+    }
+}
+
+@media (max-width: 820px) {
+    .stream-hero__content {
+        right: 23px;
+        left: 23px;
+    }
+
+    .series-hero__copy {
+        right: 23px;
+        left: 23px;
+    }
+
+    .detailed-map-route::before {
+        right: 31px;
+        left: auto;
+    }
+
+    .detailed-map-stop {
+        padding-right: 82px;
+        padding-left: 0;
+    }
+
+    .detailed-map-stop__node {
+        right: 0;
+        left: auto;
+    }
+
+    .detailed-map-finish {
+        margin-right: 82px;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 560px) {
+    .detailed-map-route::before {
+        right: 25px;
+        left: auto;
+    }
+
+    .detailed-map-stop {
+        padding-right: 62px;
+        padding-left: 0;
+    }
+
+    .detailed-map-finish {
+        margin-right: 62px;
+        margin-left: 0;
+    }
+}

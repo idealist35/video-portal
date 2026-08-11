@@ -176,6 +176,30 @@ function applyShowcaseMetadataToVideo(array $video): array
     }
     $video['aspect_ratio'] = (string) ($item['aspect_ratio'] ?? '');
 
+    return localizeShowcaseVideo($video, (string) ($item['slug'] ?? ''));
+}
+
+/**
+ * Translate a showcase row for display only.
+ *
+ * Deliberately not folded into getShowcaseCatalogBlueprint(): that blueprint is
+ * also what syncShowcaseVideosFromR2() writes into the videos table, and rows
+ * inserted while a visitor happened to be browsing in Arabic would then be
+ * stored in Arabic for everyone.
+ *
+ * @param array<string, mixed> $video
+ * @return array<string, mixed>
+ */
+function localizeShowcaseVideo(array $video, string $slug): array
+{
+    if ($slug === '' || !function_exists('storyContentTranslations')) {
+        return $video;
+    }
+
+    foreach ((array) (storyContentTranslations()['showcase'][$slug] ?? []) as $field => $value) {
+        $video[$field] = $value;
+    }
+
     return $video;
 }
 

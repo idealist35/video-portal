@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/i18n.php';
 require_once BASE_PATH . '/vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -21,8 +22,17 @@ use PHPMailer\PHPMailer\Exception;
  */
 function sendEmail(string $to, string $subject, string $template, array $vars = []): bool
 {
-    // Load and render template
+    // Load and render template, preferring the locale variant the visitor was
+    // reading the site in when they triggered the mail (welcome.ar.html), and
+    // falling back to the English original when no variant exists.
     $templatePath = EMAILS_PATH . '/' . $template;
+    $locale = function_exists('currentLocale') ? currentLocale() : DEFAULT_LOCALE;
+    if ($locale !== DEFAULT_LOCALE) {
+        $localised = EMAILS_PATH . '/' . preg_replace('/\.html$/', '.' . $locale . '.html', $template);
+        if (is_file($localised)) {
+            $templatePath = $localised;
+        }
+    }
     if (!file_exists($templatePath)) {
         error_log("Email template not found: $templatePath");
         return false;
@@ -66,7 +76,7 @@ function sendEmail(string $to, string $subject, string $template, array $vars = 
 function sendWelcomeEmail(string $to, string $verifyToken): bool
 {
     $verifyUrl = SITE_URL . '/verify?token=' . urlencode($verifyToken);
-    return sendEmail($to, 'Welcome to ' . SITE_TITLE, 'welcome.html', [
+    return sendEmail($to, t('email.welcome_subject', ['site' => SITE_TITLE]), 'welcome.html', [
         'SITE_TITLE'  => SITE_TITLE,
         'VERIFY_URL'  => $verifyUrl,
         'EMAIL'       => $to,
@@ -79,7 +89,7 @@ function sendWelcomeEmail(string $to, string $verifyToken): bool
 function sendResetEmail(string $to, string $resetToken): bool
 {
     $resetUrl = SITE_URL . '/reset-password?token=' . urlencode($resetToken);
-    return sendEmail($to, 'Password Reset — ' . SITE_TITLE, 'reset-password.html', [
+    return sendEmail($to, t('email.reset_subject', ['site' => SITE_TITLE]), 'reset-password.html', [
         'SITE_TITLE' => SITE_TITLE,
         'RESET_URL'  => $resetUrl,
         'EMAIL'      => $to,
