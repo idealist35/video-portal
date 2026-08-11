@@ -86,8 +86,6 @@ return [
     'nav.robots'    => 'Robots',
     'nav.cast'      => 'Cast',
 
-    'header.audio_chip'      => 'Arabic audio',
-    'header.audio_chip_aria' => 'Browse Arabic audio episodes',
     'header.premium'         => 'Premium',
     'header.log_in'          => 'Log in',
     'header.log_out'         => 'Log out',

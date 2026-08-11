@@ -292,7 +292,6 @@ h2 {
     gap: 9px;
 }
 
-.language-chip,
 .access-chip {
     display: inline-flex;
     align-items: center;
@@ -307,14 +306,6 @@ h2 {
     font-weight: 800;
     letter-spacing: .05em;
     text-transform: uppercase;
-}
-
-.language-chip__pulse {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--aqua);
-    box-shadow: 0 0 0 4px rgba(88, 223, 210, .1);
 }
 
 /* Site language. Both options stay on screen rather than a single toggle, so
@@ -3466,10 +3457,6 @@ input:focus-visible {
 
     .site-header__inner {
         gap: 25px;
-    }
-
-    .language-chip {
-        display: none;
     }
 
     .stream-hero {

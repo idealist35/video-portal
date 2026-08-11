@@ -128,8 +128,6 @@ return [
     'nav.robots'    => 'الروبوتات',
     'nav.cast'      => 'الشخصيات',
 
-    'header.audio_chip'      => 'صوت عربي',
-    'header.audio_chip_aria' => 'تصفح الحلقات ذات الصوت العربي',
     'header.premium'         => 'مميّز',
     'header.log_in'          => 'تسجيل الدخول',
     'header.log_out'         => 'تسجيل الخروج',

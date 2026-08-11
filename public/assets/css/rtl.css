@@ -29,7 +29,6 @@ h3 {
 /* Uppercasing and wide tracking do nothing to Arabic but do force the shaper
    to letter-space cursive joins, so both are dropped wherever they were set. */
 .brand__wordmark em,
-.language-chip,
 .access-chip,
 .language-switch__option,
 .match-label,

@@ -114,11 +114,6 @@ $scriptStrings = [
                         </a>
                     <?php endforeach; ?>
                 </div>
-
-                <a class="language-chip" href="/world/oasis#episodes" aria-label="<?= te('header.audio_chip_aria') ?>">
-                    <span class="language-chip__pulse"></span>
-                    <?= te('header.audio_chip') ?>
-                </a>
                 <?php if ($user): ?>
                     <span class="account-name" title="<?= htmlspecialchars($user['email']) ?>"><?= htmlspecialchars($user['email']) ?></span>
                     <?php if ($hasSubscription): ?><span class="access-chip"><?= te('header.premium') ?></span><?php endif; ?>
