@@ -3,9 +3,10 @@
  *
  * Most of the layout is flex and grid, which mirrors on its own once <html> has
  * dir="rtl". What is left is the handful of places that pin a corner with a
- * physical left/right offset, align text to a physical edge, or point an arrow
- * at a physical direction. Those are listed here rather than converted to
- * logical properties in streaming.css, so the LTR rendering is untouched.
+ * physical left/right offset, align text to a physical edge, shade artwork
+ * toward the copy, or point an arrow at a physical direction. Those are listed
+ * here rather than converted to logical properties in streaming.css, so the
+ * LTR rendering is untouched.
  */
 
 /* ── Typography ──────────────────────────────────────────── */
@@ -87,6 +88,23 @@ h3 {
     left: auto;
 }
 
+/* Keep every directional image scrim on the same side as the Arabic copy. */
+.stream-hero__shade {
+    background:
+        linear-gradient(270deg, rgba(4, 6, 9, .96) 0%, rgba(4, 6, 9, .78) 30%, rgba(4, 6, 9, .23) 60%, rgba(4, 6, 9, .08) 100%),
+        linear-gradient(0deg, rgba(4, 6, 9, .92) 0%, transparent 36%, rgba(4, 6, 9, .22) 100%);
+}
+
+.continue-banner__visual::after {
+    background:
+        linear-gradient(270deg, transparent 68%, var(--surface)),
+        linear-gradient(0deg, rgba(5, 7, 10, .55), transparent 50%);
+}
+
+.watch-cta__shade {
+    background: linear-gradient(270deg, rgba(5, 7, 10, .98) 0%, rgba(5, 7, 10, .78) 40%, rgba(5, 7, 10, .18) 75%);
+}
+
 .hero-play {
     right: auto;
     left: clamp(30px, 7vw, 90px);
@@ -132,6 +150,12 @@ h3 {
     left: auto;
 }
 
+.series-hero__shade {
+    background:
+        linear-gradient(270deg, rgba(4, 6, 9, .96), rgba(4, 6, 9, .75) 34%, rgba(4, 6, 9, .12) 72%),
+        linear-gradient(0deg, rgba(4, 6, 9, .92), transparent 38%);
+}
+
 .season-status,
 .detailed-map-season__status {
     text-align: left;
@@ -143,6 +167,12 @@ h3 {
 }
 
 /* ── Series map ──────────────────────────────────────────── */
+.map-hero__shade {
+    background:
+        linear-gradient(270deg, rgba(4, 6, 9, .97), rgba(4, 6, 9, .8) 40%, rgba(4, 6, 9, .18) 78%),
+        linear-gradient(0deg, rgba(4, 6, 9, .9), transparent 45%);
+}
+
 .detailed-map-card__play {
     right: auto;
     left: 14px;
@@ -182,6 +212,18 @@ h3 {
 }
 
 /* ── Cast ────────────────────────────────────────────────── */
+.cast-hero__shade {
+    background:
+        linear-gradient(180deg, rgba(5, 7, 10, .08), transparent 45%, rgba(5, 7, 10, .88)),
+        linear-gradient(270deg, rgba(5, 7, 10, .26), transparent 55%);
+}
+
+.cast-watch-strip__screen::after {
+    background:
+        linear-gradient(270deg, transparent 68%, var(--surface)),
+        linear-gradient(0deg, rgba(5, 7, 10, .52), transparent 55%);
+}
+
 .cast-hero__actions > span {
     margin-right: 8px;
     margin-left: 0;
@@ -224,10 +266,14 @@ h3 {
    file loads second, its desktop rules would otherwise outrank the narrow-width
    rules there, so anything pinned to both edges below has to be restated. */
 @media (max-width: 1100px) {
-    /* The audio chip hides at this width to save room; the language switch
-       must not, since it is the only way back to English. */
     .language-switch {
         order: -1;
+    }
+
+    .stream-hero__shade {
+        background:
+            linear-gradient(270deg, rgba(4, 6, 9, .95), rgba(4, 6, 9, .72) 42%, rgba(4, 6, 9, .16) 80%),
+            linear-gradient(0deg, rgba(4, 6, 9, .92), transparent 40%);
     }
 }
 
@@ -237,9 +283,39 @@ h3 {
         left: 23px;
     }
 
+    .stream-hero__shade {
+        background:
+            linear-gradient(0deg, rgba(4, 6, 9, .98) 0%, rgba(4, 6, 9, .76) 48%, rgba(4, 6, 9, .08) 82%),
+            linear-gradient(270deg, rgba(4, 6, 9, .32), transparent 72%);
+    }
+
+    .continue-banner__visual::after {
+        background: linear-gradient(0deg, var(--surface), transparent 55%);
+    }
+
+    .watch-cta__shade {
+        background: linear-gradient(0deg, rgba(5, 7, 10, .98), rgba(5, 7, 10, .62) 60%, rgba(5, 7, 10, .14));
+    }
+
     .series-hero__copy {
         right: 23px;
         left: 23px;
+    }
+
+    .series-hero__shade {
+        background:
+            linear-gradient(0deg, rgba(4, 6, 9, .98), rgba(4, 6, 9, .72) 50%, rgba(4, 6, 9, .08) 84%),
+            linear-gradient(270deg, rgba(4, 6, 9, .32), transparent);
+    }
+
+    .map-hero__shade {
+        background:
+            linear-gradient(0deg, rgba(4, 6, 9, .98), rgba(4, 6, 9, .76) 58%, rgba(4, 6, 9, .1) 90%),
+            linear-gradient(270deg, rgba(4, 6, 9, .36), transparent 74%);
+    }
+
+    .cast-watch-strip__screen::after {
+        background: linear-gradient(0deg, var(--surface), transparent 55%);
     }
 
     .detailed-map-route::before {
